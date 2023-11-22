@@ -1,4 +1,4 @@
-package main;
+package src.main;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -45,14 +45,15 @@ public class Interpreter {
             /* executeIfStatement(index);       */
                 break;
             case PRINT:
-                executePrintStatement(index);
-            // Mostrar los resultados al final de la ejecución
+                print(index);
                 break;
+            // Mostrar los resultados al final de la ejecución
             case RETURN:
                 executeReturnStatement(index);
                 break;
             default:
                 // Otros casos según sea necesario
+                System.out.println("No es ningun caso");
                 break;
         }
     }
@@ -131,16 +132,20 @@ public class Interpreter {
         int result = 0;
         boolean firstOperand = true;
     
-        while (index < tokens.size()) {
+        while (index < tokens.size()) 
+        {
             Token currentToken = tokens.get(index);
     
-            if (currentToken.getType() == TokenType.NUMBER) {
+            if (currentToken.getType() == TokenType.NUMBER) 
+            {
                 int operand = Integer.parseInt(currentToken.getLexeme());
                 result = (firstOperand) ? operand : result + operand;
                 firstOperand = false;
-            } else if (currentToken.getType() == TokenType.IDENTIFIER) {
+            } else if (currentToken.getType() == TokenType.IDENTIFIER) 
+            {
                 String variableName = currentToken.getLexeme();
-                if (variables.containsKey(variableName)) {
+                if (variables.containsKey(variableName)) 
+                {
                     int operand = (int) variables.get(variableName);
                     result = (firstOperand) ? operand : result + operand;
                     firstOperand = false;
@@ -148,10 +153,12 @@ public class Interpreter {
                     System.out.println("Error: La variable '" + variableName + "' no está definida");
                     return 0;
                 }
-            } else if (currentToken.getType() == TokenType.ADD) {
+            } else if (currentToken.getType() == TokenType.ADD) 
+            {
                 // Avanzar al siguiente token después del '+'
                 index++;
-            } else if (currentToken.getType() == TokenType.SEMICOLON) {
+            } else if (currentToken.getType() == TokenType.SEMICOLON) 
+            {
                 // Fin de la declaración
                 break;
             }
@@ -162,12 +169,6 @@ public class Interpreter {
         return result;
     }
     
-    
-    
-    
-    
-    
-
     private void executeReturnStatement(int index)
     {
         index++; // Avanzar al siguiente token después de "return"
@@ -220,9 +221,9 @@ public class Interpreter {
         }
     }
 
-    private void executePrintStatement(int index) {
-        // Obtener el nombre de la variable a imprimir
-        index += 2;
+    private void print(int index) {
+        index += 2; // Avanzar al siguiente token después de '('
+    
         if (index < tokens.size()) {
             Token variableToken = tokens.get(index);
             String variableName = variableToken.getLexeme();
@@ -230,6 +231,7 @@ public class Interpreter {
                 Object value = variables.get(variableName);
                 System.out.println("Debug: Print statement - Value: " + value);
                 System.out.println(value);
+                // Puedes almacenar el valor en una lista de resultados si es necesario
                 results.add(value);
             } else {
                 // Error: La variable no está definida
@@ -241,3 +243,12 @@ public class Interpreter {
         }
     }
 }
+
+
+
+
+
+
+
+
+

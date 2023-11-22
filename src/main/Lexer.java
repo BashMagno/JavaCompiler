@@ -1,4 +1,4 @@
-package main;
+package src.main;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -16,6 +16,7 @@ public class Lexer
 
     public List<Token> tokenize() 
     {
+        System.out.println("Tokenizing...");
         List<Token> tokens = new ArrayList<>();
     
         while (currentPos < input.length()) 
@@ -83,18 +84,24 @@ public class Lexer
                         break;
                     case '%':
                         tokens.add(new Token(TokenType.MODULE, "%"));
+                        break;
                     default:
                         // Manejar otros casos o lanzar una excepción si se encuentra un carácter no reconocido
                         // También puedes intentar escanear un BOOL_LITERAL aquí
                         Token boolToken = scanBool();
+                        Token printToken = scanPrint();
                         if (boolToken != null) 
                         {
                             tokens.add(boolToken);
+                            break;
                         } 
-                        else 
-                        {
-                            // Manejar otros caracteres
+                        
+                        if(printToken != null)
+                        {   
+                            tokens.add(printToken);
+                            break;
                         }
+
                         break;
                 }
                 currentPos++;
@@ -117,9 +124,9 @@ public class Lexer
             lexeme.append(input.charAt(currentPos));
             currentPos++;
         }
-
+        String keyword = lexeme.toString();
         // Identificamos si es una palabra clave
-        switch (lexeme.toString()) 
+        switch (keyword) 
         {
             case "char":
                 return new Token(TokenType.CHAR, lexeme.toString());
@@ -147,9 +154,12 @@ public class Lexer
                 return new Token(TokenType.ELSE, lexeme.toString());
             case "return":
                 return new Token(TokenType.RETURN, lexeme.toString());
+            case "print":
+                return new Token(TokenType.PRINT, lexeme.toString());
+            case "printv":
+                return new Token(TokenType.PRINTV, lexeme.toString());
             default:
                 return new Token(TokenType.IDENTIFIER, lexeme.toString());
-                
         }
     }
 
@@ -204,17 +214,6 @@ public class Lexer
 
     // Resto de las funciones de escaneo (scanNumber, scanCharLiteral, scanStringLiteral)...
 
-    private boolean isNextWord(String word) 
-    {
-        int wordLength = word.length();
-        if (currentPos + wordLength > input.length()) 
-        {
-            return false;
-        }
-
-        String nextWord = input.substring(currentPos, currentPos + wordLength);
-        return nextWord.equals(word);
-    }
 
     private Token scanStringLiteral() 
     {
@@ -234,4 +233,22 @@ public class Lexer
 
         return new Token(TokenType.STRING_LITERAL, lexeme.toString());
     }
+
+    private Token scanPrint() {
+        StringBuilder lexeme = new StringBuilder();
+        lexeme.append(input.charAt(currentPos));
+    
+        currentPos++; // Avanza al siguiente caracter
+    
+        while (currentPos < input.length() && input.charAt(currentPos) != '(') {
+            lexeme.append(input.charAt(currentPos));
+            currentPos++;
+        }
+    
+        lexeme.append(input.charAt(currentPos));
+        currentPos++; // Avanza al siguiente caracter
+    
+        return new Token(TokenType.PRINT, lexeme.toString());
+    }
+    
 }

@@ -1,4 +1,4 @@
-package main;
+package src.main;
 
 public enum TokenType 
 {
@@ -17,7 +17,7 @@ public enum TokenType
     FLOAT_LITERAL, BOOL_LITERAL, DOUBLE_LITERAL,
 
     // OPERATORS
-    EQUALS, ADD,/*  ADD_LITERAL, */ SUBSTRAIN, DIVIDE, MULTIPLY, MODULE,
+    EQUALS, ADD, SUBSTRAIN, DIVIDE, MULTIPLY, MODULE,
 
     // SEPARATORS
     SEMICOLON, COMMA, LEFT_PAREN, RIGHT_PAREN,
@@ -25,8 +25,10 @@ public enum TokenType
     LEFT_BRACE, RIGHT_BRACE, COLON, DOT,
 
     // FUNCTIONS
-    PRINT, RETURN, // Console debug print : Example -> print("Hola Mundo!") -> $> Hola Mundo!
-
+    PRINT,      // Console debug print : Example -> print("Hola Mundo!") -> $> Hola Mundo!
+    PRINTV,     // Console debug print : Example -> String s = "Hola Mundo!"; printv(s); -> $> String s:"Hola Mundo!"
+    RETURN, 
+    
     // COMMENTS
     COMMENTS,
 
