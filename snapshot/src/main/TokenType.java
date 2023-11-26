@@ -4,7 +4,7 @@ public enum TokenType
 {
     // KEYWORDS
     // VARIABLES
-    VAR,
+    CHAR, STRING, INT, DOUBLE, FLOAT, BOOL,
 
     // LOOPS
     FOR, WHILE,

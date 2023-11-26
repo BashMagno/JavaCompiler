@@ -16,6 +16,7 @@ public class Lexer
 
     public List<Token> tokenize() 
     {
+        System.out.println("Tokenizing...");
         List<Token> tokens = new ArrayList<>();
     
         while (currentPos < input.length()) 
@@ -124,8 +125,18 @@ public class Lexer
         // Identificamos si es una palabra clave
         switch (keyword) 
         {
-            case "var":
-                return new Token(TokenType.VAR, lexeme.toString());
+            case "char":
+                return new Token(TokenType.CHAR, lexeme.toString());
+            case "string":
+                return new Token(TokenType.STRING, lexeme.toString());
+            case "int":
+                return new Token(TokenType.INT, lexeme.toString());
+            case "double":
+                return new Token(TokenType.DOUBLE, lexeme.toString());
+            case "float":
+                return new Token(TokenType.FLOAT, lexeme.toString());
+            case "bool":
+                return new Token(TokenType.BOOL, lexeme.toString());
             case "true":
                 return new Token(TokenType.BOOL_LITERAL, lexeme.toString());
             case "false":

@@ -1,0 +1,622 @@
+package main;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.List;
+
+public class Compiler {
+
+    private static final String EXTENSION = ".ahm";
+
+    public static boolean isFile(String file) {
+        return file.endsWith(EXTENSION);
+    }
+
+
+
+    public static void main(String[] args) {
+
+        // Checking the length of arguments given
+        if (args.length != 1) {
+            ErrorHandler.getError(ErrorHandler.ERROR_ONE);
+            System.exit(1);
+        }
+
+        // Creating String variable to assign the path of the .ahm file in it, otherwise shows up an error and exits. ERROR 1
+        String file = args[0];
+
+        // Verifying file has the .ahm extension, otherwise shows up an error and exits. ERROR 2
+        if (!isFile(file)) {
+            ErrorHandler.getError(ErrorHandler.ERROR_TWO);
+            System.exit(2);
+        }
+
+        try {
+            String content = new String(Files.readAllBytes(Paths.get(file)));
+            Lexer lexer = new Lexer(content);
+            
+            List<Token> tokens = lexer.tokenize();
+
+            Interpreter interpreter = new Interpreter();
+            interpreter.execute(tokens);
+
+            // Mostrar los resultados al final de la ejecución
+            for (Object result : interpreter.getResults()) {
+                System.out.println(result);
+            }
+            Token.printTokens(tokens);   //Printing Tokens type and lexeme
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}
+
+package main;
+
+public enum ErrorHandler 
+{
+
+    ERROR_PREFIX("AHM - PROGRAMMING LANGUAGE - By Alejandro Higuera Moreno - "),
+
+    ERROR_ONE("ERROR CODE [1]: Usage: $> java Compiler <file.ahm>"),
+
+    ERROR_TWO("ERROR CODE [2]: The file you provided does not match the extension '.ahm' "),
+
+    ERROR_THREE("ERROR CODE [3]: Variable type not found.");
+
+    
+
+    private final String errorMessage;
+
+    
+
+    ErrorHandler(String errorMessage) 
+    {
+        this.errorMessage = errorMessage;
+    }
+
+    public static void getError(ErrorHandler error) 
+    {
+        System.out.println(error.getErrorMessage());
+    }
+
+    public String getErrorMessage() 
+    {
+        return errorMessage;
+    }
+
+}
+
+package main;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Stack;
+import compilerlib.StackLib;
+
+public class Interpreter {
+    private Map<String, Object> variables = new HashMap<>();
+    private List<Object> results = new ArrayList<>();
+    private List<Token> tokens;
+
+    public List<Object> getResults() {
+        return results;
+    }
+
+    public void execute(List<Token> tokens) {
+        this.tokens = tokens;
+
+        for (int i = 0; i < tokens.size(); i++) {
+            executeStatement(i);
+        }
+
+    }
+
+    private void executeStatement(int index) {
+        Token token = tokens.get(index);
+        switch (token.getType()) {
+            case VAR:
+                executeVariableDeclaration(index);
+                break;
+            case ADD:
+                executeAdditionExpression(index);
+                break;
+            case FOR:
+                /* executeForLoop(index); */
+                break;
+            case WHILE:
+                /* executeWhileLoop(index); */
+                break;
+            case IF:
+                /* executeIfStatement(index); */
+                break;
+            case PRINT:
+                print(index);
+                break;
+            // Mostrar los resultados al final de la ejecución
+            case RETURN:
+                executeReturnStatement(index);
+                break;
+            default:
+                break;
+        }
+    }
+
+    private Object parseValue(int index) {
+        index++; // Avanzar al siguiente token después del '='
+        if (index < tokens.size()) {
+            Token valueToken = tokens.get(index);
+            switch (valueToken.getType()) {
+                case NUMBER:
+                    try {
+                        return Integer.parseInt(valueToken.getLexeme());
+                    } catch (NumberFormatException e) {
+                        System.out.println("Error: No se pudo convertir el número '" + valueToken.getLexeme() + "'");
+                    }
+                    break;
+                case IDENTIFIER:
+                    try {
+                        String variableName = valueToken.getLexeme();
+                        if (variables.containsKey(variableName)) {
+                            return variables.get(variableName);
+                        } else {
+                            System.out.println("Error: La variable '" + variableName + "' no está definida");
+                        }
+                    } catch (Exception e) {
+                        System.out.println("Error: Error al obtener el valor de la variable");
+                    }
+                    break;
+                case ADD:
+                    // Caso especial para la suma dentro de la asignación
+                    return executeAdditionExpression(index);
+                default:
+                    // Otros casos según sea necesario
+                    System.out.println("Error: Tipo de valor no reconocido: " + valueToken.getType());
+                    break;
+            }
+        } else {
+            // Error: Fin de tokens inesperado después de la declaración de variable
+            System.out.println("Error: Fin de tokens inesperado después de la declaración de variable");
+        }
+        return null;
+    }
+
+    private void executeVariableDeclaration(int index) {
+        String variableName = tokens.get(index + 1).getLexeme();
+        if (variables.containsKey(variableName)) {
+            // La variable ya está definida
+            System.out.println("Error: La variable '" + variableName + "' ya está definida");
+        } else {
+            // Avanzar al siguiente token después del '='
+            index += 2;
+            if (index < tokens.size()) {
+                Object value = parseValue(index);
+                variables.put(variableName, value);
+            } else {
+                // Error: Fin de tokens inesperado después de la declaración de variable
+                System.out.println("Error: Fin de tokens inesperado después de la declaración de variable");
+            }
+        }
+    }
+
+    // OPERATIONS
+
+    private int executeAdditionExpression(int index) {
+        int result = 0;
+        Stack<Integer> numsStack = new Stack<>();
+
+        while (index < tokens.size()) {
+            Token currentToken = tokens.get(index);
+            System.out.println(currentToken.getType());
+            if (currentToken.getType() == TokenType.ADD) {
+                int operand = Integer.parseInt(currentToken.getLexeme());
+                System.out.println("Debug:" + operand);
+                numsStack.add(operand);
+
+            } else if (currentToken.getType() == TokenType.IDENTIFIER) {
+                String variableName = currentToken.getLexeme();
+                if (variables.containsKey(variableName)) {
+                    int operand = (int) variables.get(variableName);
+                    numsStack.add(operand);
+                } else {
+                    System.out.println("Error: La variable '" + variableName + "' no está definida");
+                    return 0;
+                }
+            } else if (currentToken.getType() == TokenType.ADD) {
+                // Avanzar al siguiente token después del '+'
+                index++;
+            } else if (currentToken.getType() == TokenType.SEMICOLON) {
+                // Fin de la declaración
+                break;
+            }
+
+            index++; // Avanzar al siguiente token
+        }
+        while (!numsStack.isEmpty()) {
+            result += numsStack.pop();
+            System.out.println(result);
+        }
+        numsStack = StackLib.setEmpty(numsStack);
+        return result;
+    }
+
+    private void executeReturnStatement(int index) {
+        index++; // Avanzar al siguiente token después de "return"
+        if (index < tokens.size()) {
+            Token valueToken = tokens.get(index);
+            switch (valueToken.getType()) {
+                case IDENTIFIER:
+                    // Si el token es un identificador, intenta obtener su valor
+                    String variableName = valueToken.getLexeme();
+                    if (variables.containsKey(variableName)) {
+                        Object value = variables.get(variableName);
+                        results.add(value);
+                    } else {
+                        System.out.println("Error: La variable '" + variableName + "' no está definida");
+                    }
+                    break;
+                case VAR:
+                    String variableNameString = valueToken.getLexeme();
+                    if (variables.containsKey(variableNameString)) {
+                        Object value = variables.get(variableNameString);
+                        results.add(value);
+                    }
+                    break;
+                case NUMBER:
+                    // Si el token es un número, simplemente agrega su valor a los resultados
+                    results.add(Integer.parseInt(valueToken.getLexeme()));
+                    break;
+                case CHAR_LITERAL:
+                    results.add(valueToken.getLexeme().toCharArray()[1]);
+                    break;
+                case FLOAT_LITERAL:
+                    results.add(Float.parseFloat(valueToken.getLexeme()));
+                    break;
+                case BOOL_LITERAL:
+                    results.add(Boolean.parseBoolean(valueToken.getLexeme()));
+                    break;
+                case STRING_LITERAL:
+                    results.add(valueToken.getLexeme().replace("\"", ""));
+                    break;
+                default:
+                    // Otros casos según sea necesario
+                    System.out.println("Error: Tipo de valor no reconocido en la declaración de retorno");
+                    break;
+            }
+        } else {
+            // Error: Fin de tokens inesperado después de la declaración de retorno
+            System.out.println("Error: Fin de tokens inesperado después de la declaración de retorno");
+        }
+    }
+
+    private void print(int index) {
+        index += 2; // Avanzar al siguiente token después de '('
+
+        if (index < tokens.size()) {
+            Token variableToken = tokens.get(index);
+            String variableName = variableToken.getLexeme();
+            if (variables.containsKey(variableName)) {
+                Object value = variables.get(variableName);
+                // Puedes almacenar el valor en una lista de resultados si es necesario
+                results.add(value);
+            } else {
+                // Error: La variable no está definida
+                System.out.println("Error: La variable '" + variableName + "' no está definida");
+            }
+        } else {
+            // Error: Fin de tokens inesperado después de la declaración de impresión
+            System.out.println("Error: Fin de tokens inesperado después de la declaración de impresión");
+        }
+    }
+}
+package main;
+
+import java.util.ArrayList;
+import java.util.List;
+
+public class Lexer 
+{
+    private String input;
+    private int currentPos;
+
+    public Lexer(String input) 
+    {
+        this.input = input;
+        this.currentPos = 0;
+    }
+
+    public List<Token> tokenize() 
+    {
+        List<Token> tokens = new ArrayList<>();
+    
+        while (currentPos < input.length()) 
+        {
+            char currentChar = input.charAt(currentPos);
+    
+            if (Character.isLetter(currentChar)) 
+            {
+                tokens.add(scanIdentifierOrKeyword());
+            } else if (Character.isDigit(currentChar)) 
+            {
+                tokens.add(scanNumber());
+            } else if (currentChar == '\'') 
+            {
+                tokens.add(scanCharLiteral());
+            } else if (currentChar == '"') 
+            {
+                tokens.add(scanStringLiteral());
+            } 
+            else 
+            {
+                switch (currentChar) 
+                {
+                    case '=':
+                        tokens.add(new Token(TokenType.EQUALS, "="));
+                        break;
+                    case ';':
+                        tokens.add(new Token(TokenType.SEMICOLON, ";"));
+                        break;
+                    case ',':
+                        tokens.add(new Token(TokenType.COMMA, ","));
+                        break;
+                    case '(':
+                        tokens.add(new Token(TokenType.LEFT_PAREN, "("));
+                        break;
+                    case ')':
+                        tokens.add(new Token(TokenType.RIGHT_PAREN, ")"));
+                        break;
+                    case '{':
+                        tokens.add(new Token(TokenType.LEFT_BRACE, "{"));
+                        break;
+                    case '}':
+                        tokens.add(new Token(TokenType.RIGHT_BRACE, "}"));
+                        break;
+                    case ':':
+                        tokens.add(new Token(TokenType.COLON, ":"));
+                        break;
+                    case '.':
+                        tokens.add(new Token(TokenType.DOT, "."));
+                        break;
+                    case '/':
+                        tokens.add(new Token(TokenType.COMMENTS, "//"));
+                        break;
+                    case '+':
+                        tokens.add(new Token(TokenType.ADD, "+"));
+                        break;
+                    case '-':
+                        tokens.add(new Token(TokenType.SUBSTRAIN, "-"));
+                        break;
+                    case '*':
+                        tokens.add(new Token(TokenType.MULTIPLY, "*"));
+                        break;
+                    case '$':
+                        tokens.add(new Token(TokenType.DIVIDE, "$"));
+                        break;
+                    case '%':
+                        tokens.add(new Token(TokenType.MODULE, "%"));
+                        break;
+                    default:
+                        // Manejar otros casos o lanzar una excepción si se encuentra un carácter no reconocido
+                        // También puedes intentar escanear un BOOL_LITERAL aquí
+                        Token boolToken = scanBool();
+                        if (boolToken != null) 
+                        {
+                            tokens.add(boolToken);
+                            break;
+                        } 
+
+                }
+                currentPos++;
+                if (currentPos == input.length()) 
+                {
+                    tokens.add(new Token(TokenType.END_OF_FILE, "EOF"));
+                }
+            }
+            
+        }
+    
+        return tokens;
+    }
+    
+    /*
+     * KEYWORDS AND VARIABLES
+     */
+
+    private Token scanIdentifierOrKeyword() 
+    {
+        StringBuilder lexeme = new StringBuilder();
+
+        while (currentPos < input.length() && (Character.isLetterOrDigit(input.charAt(currentPos)) || input.charAt(currentPos) == '_')) 
+        {
+            lexeme.append(input.charAt(currentPos));
+            currentPos++;
+        }
+        String keyword = lexeme.toString();
+        // Identificamos si es una palabra clave
+        switch (keyword) 
+        {
+            case "var":
+                return new Token(TokenType.VAR, lexeme.toString());
+            case "true":
+                return new Token(TokenType.BOOL_LITERAL, lexeme.toString());
+            case "false":
+                return new Token(TokenType.BOOL_LITERAL, lexeme.toString());
+            case "for":
+                return new Token(TokenType.FOR, lexeme.toString());
+            case "while":
+                return new Token(TokenType.WHILE, lexeme.toString());
+            case "if":
+                return new Token(TokenType.IF, lexeme.toString());
+            case "else":
+                return new Token(TokenType.ELSE, lexeme.toString());
+            case "return":
+                return new Token(TokenType.RETURN, lexeme.toString());
+            case "print":
+                return new Token(TokenType.PRINT, lexeme.toString());
+            case "printv":
+                return new Token(TokenType.PRINTV, lexeme.toString());
+            default:
+                return new Token(TokenType.IDENTIFIER, lexeme.toString());
+        }
+    }
+
+    private Token scanNumber() 
+    {
+        StringBuilder lexeme = new StringBuilder();
+
+        while (currentPos < input.length() && (Character.isDigit(input.charAt(currentPos)) || input.charAt(currentPos) == '.')) {
+            lexeme.append(input.charAt(currentPos));
+            currentPos++;
+        }
+
+        return new Token(TokenType.NUMBER, lexeme.toString());
+    }
+
+    private Token scanCharLiteral() 
+    {
+        StringBuilder lexeme = new StringBuilder();
+        lexeme.append(input.charAt(currentPos));        // Agrega la primera comilla simple
+
+        currentPos++;                                   // Avanza al siguiente caracter
+        while (currentPos < input.length() && input.charAt(currentPos) != '\'') 
+        {
+            lexeme.append(input.charAt(currentPos));
+            currentPos++;
+        }
+
+        lexeme.append(input.charAt(currentPos));        // Agrega el segundo comilla simple
+        currentPos++;                                   
+
+        return new Token(TokenType.CHAR_LITERAL, lexeme.toString());
+    }
+    private Token scanBool() 
+    {
+        StringBuilder lexeme = new StringBuilder();
+
+        while (currentPos < input.length() && Character.isLetter(input.charAt(currentPos))) 
+        {
+            lexeme.append(input.charAt(currentPos));
+            currentPos++;
+        }
+
+        String boolLiteral = lexeme.toString();
+        if (boolLiteral.equals("true") || boolLiteral.equals("false")) 
+        {
+            return new Token(TokenType.BOOL_LITERAL, boolLiteral);
+        } else {
+            // Manejar el caso donde no es ni "true" ni "false"
+            return null;
+        }
+    }
+
+    // Resto de las funciones de escaneo (scanNumber, scanCharLiteral, scanStringLiteral)...
+
+
+    private Token scanStringLiteral() 
+    {
+        StringBuilder lexeme = new StringBuilder();
+        lexeme.append(input.charAt(currentPos)); // Agrega la comilla doble inicial
+
+        currentPos++; // Avanza al siguiente caracter
+        
+        while (currentPos < input.length() && input.charAt(currentPos) != '"') 
+        {
+            lexeme.append(input.charAt(currentPos));
+            currentPos++;
+        }
+
+        lexeme.append(input.charAt(currentPos)); // Agrega la comilla doble final
+        currentPos++; // Avanza al siguiente caracter
+
+        return new Token(TokenType.STRING_LITERAL, lexeme.toString());
+    }
+
+}
+
+package main;
+
+import java.util.List;
+
+public class Token 
+{
+    private TokenType type;
+    private String lexeme;
+
+    public Token(TokenType type, String lexeme) 
+    {
+        this.type = type;
+        this.lexeme = lexeme;
+    }
+
+    public TokenType getType() 
+    {
+        return type;
+    }
+
+    public String getLexeme() 
+    {
+        return lexeme;
+    }
+
+    public static void printTokens(List<Token> tokens)
+    {
+        System.out.println("");
+        for(Token token : tokens)
+        {
+            System.out.println(token);
+        }
+    }
+
+    @Override
+    public String toString() 
+    {
+        return "Token{" +
+                "type=" + type +
+                ", lexeme='" + lexeme + '\'' +
+                '}';
+    }
+
+
+}
+
+package main;
+
+public enum TokenType 
+{
+    // KEYWORDS
+    // VARIABLES
+    VAR,
+
+    // LOOPS
+    FOR, WHILE,
+
+    // CONDITIONALS
+    IF, ELSE,
+
+    // IDENTIFIERS
+    IDENTIFIER, NUMBER, CHAR_LITERAL, STRING_LITERAL,
+    FLOAT_LITERAL, BOOL_LITERAL, DOUBLE_LITERAL,
+
+    // OPERATORS
+    EQUALS, ADD, SUBSTRAIN, DIVIDE, MULTIPLY, MODULE,
+
+    // SEPARATORS
+    SEMICOLON, COMMA, LEFT_PAREN, RIGHT_PAREN,
+    // ; , ( ) { } : .
+    LEFT_BRACE, RIGHT_BRACE, COLON, DOT,
+
+    // FUNCTIONS
+    PRINT,      // Console debug print : Example -> print("Hola Mundo!") -> $> Hola Mundo!
+    PRINTV,     // Console debug print : Example -> String s = "Hola Mundo!"; printv(s); -> $> String s:"Hola Mundo!"
+    RETURN, 
+    
+    // COMMENTS
+    COMMENTS,
+
+    // END OF LINE
+    END_OF_FILE
+}
+
