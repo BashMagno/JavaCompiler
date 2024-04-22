@@ -24,9 +24,11 @@ public enum TokenType
     // ; , ( ) { } : .
     LEFT_BRACE, RIGHT_BRACE, COLON, DOT,
 
+    //LOGIC OPERATORS
+    GREATER_THAN, LESS_THAN,
+
     // FUNCTIONS
     PRINT,      // Console debug print : Example -> print("Hola Mundo!") -> $> Hola Mundo!
-    PRINTV,     // Console debug print : Example -> String s = "Hola Mundo!"; printv(s); -> $> String s:"Hola Mundo!"
     RETURN, 
     
     // COMMENTS

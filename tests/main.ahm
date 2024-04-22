@@ -1,3 +1,14 @@
-var i = (6 $ 2) - 2 * 4;
-var j = 5 * 3 * 2;
-return j;
+var j = 5 * 3 + 2;
+var i = 4 * 2;
+var hola = "Hola Mundo";
+var hola = "Hola Mundo2";
+print(hola);
+if(j < i)
+{
+    print(hola);
+    return false;
+}else
+{
+    print(hola2);
+    return true;
+}

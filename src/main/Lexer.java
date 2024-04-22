@@ -84,6 +84,13 @@ public class Lexer
                     case '%':
                         tokens.add(new Token(TokenType.MODULE, "%"));
                         break;
+                    case '<':
+                        tokens.add(new Token(TokenType.LESS_THAN, "<"));
+                        break;
+                    case '>':
+                        tokens.add(new Token(TokenType.GREATER_THAN, ">"));
+                        break;
+                    
                     default:
                         // Manejar otros casos o lanzar una excepción si se encuentra un carácter no reconocido
                         // También puedes intentar escanear un BOOL_LITERAL aquí
@@ -142,8 +149,6 @@ public class Lexer
                 return new Token(TokenType.RETURN, lexeme.toString());
             case "print":
                 return new Token(TokenType.PRINT, lexeme.toString());
-            case "printv":
-                return new Token(TokenType.PRINTV, lexeme.toString());
             default:
                 return new Token(TokenType.IDENTIFIER, lexeme.toString());
         }
