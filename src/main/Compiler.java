@@ -13,8 +13,6 @@ public class Compiler {
         return file.endsWith(EXTENSION);
     }
 
-
-
     public static void main(String[] args) {
 
         // Checking the length of arguments given
@@ -45,7 +43,7 @@ public class Compiler {
             for (Object result : interpreter.getResults()) {
                 System.out.println(result);
             }
-            Token.printTokens(tokens);   //Printing Tokens type and lexeme
+            Token.printTokens(tokens);   //Printing Tokens type and lexeme (Debug Mode)
         } catch (IOException e) {
             e.printStackTrace();
         }

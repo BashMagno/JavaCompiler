@@ -59,7 +59,7 @@ public class Interpreter {
             // Avanzar al siguiente token después del '='
             index += 2;
             if (index < tokens.size()) {
-                Token currentToken = tokens.get(index+1);
+                Token currentToken = tokens.get(index);
                 if (currentToken.getType() == TokenType.STRING_LITERAL) {
                     // Si el token es una cadena literal, simplemente almacena su valor en la variable
                     variables.put(variableName, currentToken.getLexeme());
@@ -196,6 +196,21 @@ public class Interpreter {
         return -1;
     }
     
+    private int findClosingBrace(int start) {
+        int openParenCount = 0;
+        for (int i = start; i < tokens.size(); i++) {
+            if (tokens.get(i).getType() == TokenType.LEFT_BRACE) {
+                openParenCount++;
+            } else if (tokens.get(i).getType() == TokenType.RIGHT_BRACE) {
+                if (openParenCount != 0) {
+                    return i;
+                }
+                openParenCount--;
+            }
+        }
+        System.out.println("Error: Falta la llave de cierre correspondiente");
+        return -1;
+    }
 
     private Object getOperandValue(Token token) {
         int nextTokenIndex ;
@@ -317,7 +332,8 @@ public class Interpreter {
             System.out.println("Error: Fin de tokens inesperado después de la declaración de impresión");
         }
     }
-    private void executeIfStatement(int index) {
+    private void executeIfStatement(int index) 
+    {
         index += 2; // Avanzar después de '('
     
         Token leftOperandToken = tokens.get(index);
@@ -333,29 +349,41 @@ public class Interpreter {
     
         boolean condition = false;
     
-        switch (operator) {
+        switch (operator) 
+        {
             case ">":
-                condition = (Integer) leftValue > (Integer) rightValue;
+                condition = (int) leftValue > (int) rightValue ? true : false;
                 break;
             case "<":
-                condition = (Integer) leftValue < (Integer) rightValue;
+                condition = (int) leftValue < (int) rightValue ? true : false;
                 break;
-            case "=":
+            case "==":
                 condition = leftValue.equals(rightValue);
+                break;
+            default:
+                boolean booleanValueLeft = Boolean.parseBoolean(leftOperand);
+                if (booleanValueLeft) condition = true;
                 break;
         }
     
-        if (condition) {
+        if (condition) 
+        {
             executeBlock(index + 3); // Ejecutar el bloque `if`
-        } else {
-            if (tokens.get(index + 3).getType() == TokenType.ELSE) {
-                executeBlock(index + 4); // Ejecutar el bloque `else`
+        } 
+        else
+        {
+            int nextElse = findClosingBrace(index + 3) + 1;
+            if (tokens.get(nextElse).getType() == TokenType.ELSE) 
+            {
+                executeBlock(nextElse + 1); // Ejecutar el bloque `else`
             }
+            
         }
     }
 
-    private void executeBlock(int start) {
-        int braceCount = 1; // Hemos encontrado la primera llave de apertura
+    private void executeBlock(int start) 
+    {
+        int braceCount = 0; // Hemos encontrado la primera llave de apertura
         int i = start + 1;
 
         while (i < tokens.size()) {

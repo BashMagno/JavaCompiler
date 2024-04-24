@@ -21,7 +21,13 @@ public class Lexer
         while (currentPos < input.length()) 
         {
             char currentChar = input.charAt(currentPos);
-    
+            if(currentChar == '=' && currentChar+1 == '=')
+            {
+                tokens.add(new Token(TokenType.IS_EQUALS, "=="));
+            }else if(currentChar == '=' && currentChar + 1 != '=')
+            {
+                tokens.add(new Token(TokenType.EQUALS, "="));
+            }
             if (Character.isLetter(currentChar)) 
             {
                 tokens.add(scanIdentifierOrKeyword());
@@ -39,9 +45,6 @@ public class Lexer
             {
                 switch (currentChar) 
                 {
-                    case '=':
-                        tokens.add(new Token(TokenType.EQUALS, "="));
-                        break;
                     case ';':
                         tokens.add(new Token(TokenType.SEMICOLON, ";"));
                         break;

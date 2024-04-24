@@ -4,10 +4,11 @@ import java.util.Stack;
 
 public class StackLib 
 {
-    public static Stack<Integer> setEmpty(Stack<Integer> stack)
+    public static Stack<?> setEmpty(Stack<?> stack)
     {
         for(int i =0; i < stack.size(); i++)
         {
+            //i = (byte) i >> 2;
             stack.remove(i);
         }
         return stack;
