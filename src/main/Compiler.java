@@ -17,7 +17,7 @@ public class Compiler {
 
         // Checking the length of arguments given
         if (args.length != 1) {
-            ErrorHandler.getError(ErrorHandler.ERROR_ONE);
+            ErrorHandler.getError(ErrorHandler.ERROR_INIT_ONE);
             System.exit(1);
         }
 
@@ -26,7 +26,7 @@ public class Compiler {
 
         // Verifying file has the .ahm extension, otherwise shows up an error and exits. ERROR 2
         if (!isFile(file)) {
-            ErrorHandler.getError(ErrorHandler.ERROR_TWO);
+            ErrorHandler.getError(ErrorHandler.ERROR_INIT_TWO);
             System.exit(2);
         }
 
@@ -39,11 +39,15 @@ public class Compiler {
             Interpreter interpreter = new Interpreter();
             interpreter.execute(tokens);
 
-            // Mostrar los resultados al final de la ejecución
+            // Print results after execution
             for (Object result : interpreter.getResults()) {
                 System.out.println(result);
             }
             Token.printTokens(tokens);   //Printing Tokens type and lexeme (Debug Mode)
+            
+            // Assembly code example generator
+            Assembly.generateAssembly(tokens);
+
         } catch (IOException e) {
             e.printStackTrace();
         }

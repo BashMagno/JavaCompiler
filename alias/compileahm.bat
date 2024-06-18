@@ -1,1 +1,1 @@
-javac -d ../bin ../src/compilerlib/StackLib.java ../src/main/Compiler.java ../src/main/ErrorHandler.java ../src/main/Interpreter.java ../src/main/Lexer.java ../src/main/Token.java ../src/main/TokenType.java
+javac -d ../bin ../src/compilerlib/StackLib.java ../src/main/Assembly.java ../src/main/Compiler.java ../src/main/ErrorHandler.java ../src/main/Interpreter.java ../src/main/Lexer.java ../src/main/Token.java ../src/main/TokenType.java

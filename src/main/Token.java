@@ -2,29 +2,24 @@ package main;
 
 import java.util.List;
 
-public class Token 
-{
+public class Token {
     private TokenType type;
     private String lexeme;
 
-    public Token(TokenType type, String lexeme) 
-    {
+    public Token(TokenType type, String lexeme) {
         this.type = type;
         this.lexeme = lexeme;
     }
 
-    public TokenType getType() 
-    {
+    public TokenType getType() {
         return type;
     }
 
-    public String getLexeme() 
-    {
+    public String getLexeme() {
         return lexeme;
     }
 
-    public static void printTokens(List<Token> tokens)
-    {
+    public static void printTokens(List<Token> tokens) {
         System.out.println("");
         for(Token token : tokens)
         {
@@ -40,6 +35,4 @@ public class Token
                 ", lexeme='" + lexeme + '\'' +
                 '}';
     }
-
-
 }

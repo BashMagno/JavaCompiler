@@ -1,8 +1,6 @@
 package main;
 
-public enum TokenType 
-{
-    // KEYWORDS
+public enum TokenType {
     // VARIABLES
     VAR,
 
@@ -28,8 +26,9 @@ public enum TokenType
     GREATER_THAN, LESS_THAN,
 
     // FUNCTIONS
-    PRINT,      // Console debug print : Example -> print("Hola Mundo!") -> $> Hola Mundo!
+    PRINT,
     RETURN, 
+    ASSEMBLYDEBUG,
     
     // COMMENTS
     COMMENTS,

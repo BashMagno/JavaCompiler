@@ -5,542 +5,343 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class Interpreter 
-{
+public class Interpreter {
     private Map<String, Object> variables = new HashMap<>();
     private List<Object> results = new ArrayList<>();
     private List<Token> tokens;
 
-    public List<Object> getResults() 
-    {
+    public List<Object> getResults() {
         return results;
     }
 
-    public void execute(List<Token> tokens) 
-    {
+    public void execute(List<Token> tokens) {
         this.tokens = tokens;
-
-        for (int i = 0; i < tokens.size(); i++) 
-        {
-            executeStatement(i);
+        for (int i = 0; i < tokens.size(); i++) {
+            i = executeStatement(i);
         }
-
     }
 
-    private void executeStatement(int index) 
-    {
+    private int executeStatement(int index) {
         Token token = tokens.get(index);
-        switch (token.getType()) 
-        {
+        switch (token.getType()) {
             case VAR:
-                executeVariableDeclaration(index);
+                index = executeVariableDeclaration(index);
                 break;
             case FOR:
-                /* executeForLoop(index); */
-                break;
-            case WHILE:
-                /* executeWhileLoop(index); */
+                index = executeForStatement(index);
                 break;
             case IF:
-                executeIfStatement(index);
+                index = executeIfStatement(index);
                 break;
             case PRINT:
-                executePrint(index);
+                index = executePrint(index);
                 break;
-            // Mostrar los resultados al final de la ejecución
             case RETURN:
-                
+                index = executeReturnStatement(index);
                 break;
             default:
                 break;
         }
+        return index;
     }
 
-    private Object executeVariableDeclaration(int index) 
-    {
+    private int executeForStatement(int index) {
+        // Avanzar al token de la variable de iteración
+        index += 3; // Se asume que la estructura del for es "for (var i = ...)"
         String variableName = tokens.get(index).getLexeme();
-        if (variables.containsKey(variableName)) 
-        {
+    
+        // Avanzar al token de la asignación de la variable de iteración
+        index += 2; // Se asume que la estructura del for es "for (var i = 0;"
+        Object initialValue = evaluateExpression(index);
+        if (!(initialValue instanceof Integer)) {
+            System.out.println("Error: El valor inicial del bucle for debe ser un número entero");
+            return index;
+        }
+        int value = (int) initialValue;
+        variables.put(variableName, value);
+    
+        // Avanzar al token de la condición de salida del bucle
+        while (tokens.get(index).getType() != TokenType.SEMICOLON) {
+            index++;
+        }
+    
+        // Avanzar al token del incremento o decremento de la variable de iteración
+        index++;
+        int incrementIndex = index;
+        while (tokens.get(index).getType() != TokenType.RIGHT_PAREN) {
+            index++;
+        }
+    
+        // Buscar el inicio del bloque del bucle
+        int blockStartIndex = -1;
+        for (int i = index + 1; i < tokens.size(); i++) {
+            if (tokens.get(i).getType() == TokenType.LEFT_BRACE) {
+                blockStartIndex = i;
+                break;
+            }
+        }
+    
+        // Ejecutar el bucle for
+        for (; (boolean) evaluateExpression(incrementIndex); executeStatement(index + 1)) {
+            int newIndex = executeBlock(blockStartIndex + 1);
+            if (newIndex == tokens.size()) {
+                break; // Terminó la ejecución con return
+            }
+            // Evaluar el incremento o decremento de la variable de iteración
+            executeStatement(incrementIndex);
+        }
+    
+        // Saltar el bloque después de que la condición se vuelve falsa
+        while (tokens.get(index).getType() != TokenType.RIGHT_BRACE) {
+            index++;
+        }
+        return index + 1; // Devolver el índice después del bloque
+    }
+    
+    
+    
+    
+    
+
+    private Object evaluateExpression(int index) {
+        List<Object> values = new ArrayList<>();
+        List<TokenType> operators = new ArrayList<>();
+        boolean isInsideParentheses = false;
+    
+        while (index < tokens.size()) {
+            Token currentToken = tokens.get(index);
+            switch (currentToken.getType()) {
+                case LEFT_PAREN:
+                    isInsideParentheses = true;
+                    break;
+                case RIGHT_PAREN:
+                    isInsideParentheses = false;
+                    break;
+                case NUMBER:
+                    values.add(Integer.parseInt(currentToken.getLexeme()));
+                    break;
+                case IDENTIFIER:
+                    if (variables.containsKey(currentToken.getLexeme())) {
+                        values.add(variables.get(currentToken.getLexeme()));
+                    } else {
+                        System.out.println("Error: La variable '" + currentToken.getLexeme() + "' no está definida");
+                        return false; // Devolver false en caso de error
+                    }
+                    break;
+                case ADD:
+                case SUBSTRAIN:
+                case MULTIPLY:
+                case DIVIDE:
+                case GREATER_THAN:
+                case LESS_THAN:
+                    if (!isInsideParentheses) {
+                        operators.add(currentToken.getType());
+                    }
+                    break;
+                case SEMICOLON:
+                case LEFT_BRACE:
+                case RIGHT_BRACE:
+                    return evaluateValuesAndOperators(values, operators);
+                default:
+                    break;
+            }
+            index++;
+        }
+        return evaluateValuesAndOperators(values, operators);
+    }
+    
+    
+
+    private Object evaluateValuesAndOperators(List<Object> values, List<TokenType> operators) {
+        while (!operators.isEmpty()) {
+            for (int i = 0; i < operators.size();) {
+                TokenType operator = operators.get(i);
+                Object leftValue = values.get(i);
+                Object rightValue = values.get(i + 1);
+                Object result = 0;
+
+                if (leftValue instanceof Integer && rightValue instanceof Integer) {
+                    int leftInt = (int) leftValue;
+                    int rightInt = (int) rightValue;
+
+                    switch (operator) {
+                        case ADD:
+                            result = leftInt + rightInt;
+                            break;
+                        case SUBSTRAIN:
+                            result = leftInt - rightInt;
+                            break;
+                        case MULTIPLY:
+                            result = leftInt * rightInt;
+                            break;
+                        case DIVIDE:
+                            if (rightInt != 0) {
+                                result = leftInt / rightInt;
+                            } else {
+                                System.out.println("Error: División por cero");
+                                return 0;
+                            }
+                            break;
+                        case GREATER_THAN:
+                            result = leftInt > rightInt;
+                            break;
+                        case LESS_THAN:
+                            result = leftInt < rightInt;
+                            break;
+                        default:
+                            break;
+                    }
+                } else if (leftValue instanceof Boolean && rightValue instanceof Boolean) {
+                    boolean leftBool = (boolean) leftValue;
+                    boolean rightBool = (boolean) rightValue;
+
+                    switch (operator) {
+                        case GREATER_THAN:
+                            result = leftBool && !rightBool;
+                            break;
+                        case LESS_THAN:
+                            result = !leftBool && rightBool;
+                            break;
+                        default:
+                            break;
+                    }
+                }
+
+                values.set(i, result);
+                values.remove(i + 1);
+                operators.remove(i);
+                break;
+            }
+        }
+        return values.get(0);
+    }
+
+    private int executeVariableDeclaration(int index) {
+        String variableName = tokens.get(index + 1).getLexeme();
+        if (variables.containsKey(variableName)) {
             // La variable ya está definida
             System.out.println("Error: La variable '" + variableName + "' ya está definida");
-        }
-        else 
-        {
+        } else {
             // Avanzar al siguiente token después del '='
-            index += 2;
-            System.out.println(index);
-            System.out.println(tokens.size());
-            if (index < tokens.size()) 
-            {
-                Token currentToken = tokens.get(index);
-                if (currentToken.getType() == TokenType.STRING_LITERAL) 
-                {
-                    // Si el token es una cadena literal, simplemente almacena su valor en la variable
-                    System.out.println("Hola");
-                    variables.put(variableName, currentToken.getLexeme());
-                    return currentToken.getLexeme(); // Devolver el valor para actualizar la variable
-                }
-                else if (currentToken.getType() == TokenType.BOOL_LITERAL) 
-                {
-                    // Si el token es un bool, simplemente almacena su valor en la variable
-                    variables.put(variableName, currentToken.getLexeme());
-                    return currentToken.getLexeme(); // Devolver el valor para actualizar la variable
-                }
-                else if (currentToken.getType() == TokenType.EQUALS) 
-                {
-                    // Aquí es donde debes especificar el tipo de operación, en este caso, TokenType.EQUALS
-                    index++; // Avanzar al siguiente token después del '='
-                    if (index < tokens.size()) 
-                    {
-                        Object value = executeOperation(index, TokenType.EQUALS);
-                        variables.put(variableName, value);
-                        return value; // Devolver el valor para actualizar la variable
-                    } 
-                    else 
-                    {
-                        // Error: Fin de tokens inesperado después de la declaración de variable
-                        System.out.println("Error: Fin de tokens inesperado después de la declaración de variable");
-                    }
-                } 
-                else 
-                {
-                    // Error: Tipo de operando no reconocido
-                    System.out.println("Error: Tipo de operando no reconocido en la declaración de variable");
-                }
-            } 
-            else 
-            {
+            index += 3;
+            if (index < tokens.size()) {
+                Object value = evaluateExpression(index);
+                variables.put(variableName, value);
+                return index;
+            } else {
                 // Error: Fin de tokens inesperado después de la declaración de variable
                 System.out.println("Error: Fin de tokens inesperado después de la declaración de variable");
             }
         }
-        return null;
-    }
-    private Object executeOperation(int index, TokenType operationType) 
-    {
-        List<Object> operands = new ArrayList<>();
-        TokenType lastTokenType = null;
-        boolean addNext = false;
-        boolean subtractNext = false;
-        boolean multiplyNext = false;
-        boolean divideNext = false;
-    
-        while (index < tokens.size()) 
-        {
-            Token currentToken = tokens.get(index);
-    
-            if (currentToken.getType() == TokenType.NUMBER || currentToken.getType() == TokenType.IDENTIFIER) 
-            {
-                int operandValue = (int) getOperandValue(currentToken);
-                if (addNext) 
-                {
-                    operandValue += (int) operands.remove(operands.size() - 1);
-                    addNext = false;
-                } 
-                else if (subtractNext) 
-                {
-                    operandValue *= -1;
-                    operandValue += (int) operands.remove(operands.size() - 1);
-                    subtractNext = false;
-                } 
-                else if (multiplyNext) 
-                {
-                    // Modificamos cómo se realiza la operación de multiplicación
-                    int previousOperand = (int) operands.remove(operands.size() - 1);
-                    operandValue = previousOperand * operandValue;
-                    multiplyNext = false;
-                } 
-                else if (divideNext) 
-                {
-                    int previousOperand = (int) operands.remove(operands.size() - 1);
-                    if (operandValue != 0) 
-                    {
-                        operandValue = previousOperand / operandValue;
-                    } 
-                    else 
-                    {
-                        System.out.println("Error: División por cero");
-                        return 0; // O manejar el error de otra manera
-                    }
-                    divideNext = false;
-                }
-                operands.add(operandValue);
-            } 
-            else if (currentToken.getType() == TokenType.ADD) 
-            {
-                if (lastTokenType == TokenType.ADD) 
-                {
-                    System.out.println("Error: Dos operadores de suma consecutivos");
-                    return 0; // O manejar el error de otra manera
-                }
-                addNext = true;
-            } 
-            else if (currentToken.getType() == TokenType.SUBSTRAIN) 
-            {
-                if (lastTokenType == TokenType.SUBSTRAIN) 
-                {
-                    System.out.println("Error: Dos operadores de resta consecutivos");
-                    return 0; // O manejar el error de otra manera
-                }
-                subtractNext = true;
-            } 
-            else if (currentToken.getType() == TokenType.MULTIPLY) 
-            {
-                if (lastTokenType == TokenType.MULTIPLY || lastTokenType == TokenType.DIVIDE) 
-                {
-                    System.out.println("Error: Dos operadores de multiplicación o división consecutivos");
-                    return 0; // O manejar el error de otra manera
-                }
-                multiplyNext = true;
-            } 
-            else if (currentToken.getType() == TokenType.DIVIDE) 
-            {
-                if (lastTokenType == TokenType.MULTIPLY || lastTokenType == TokenType.DIVIDE) 
-                {
-                    System.out.println("Error: Dos operadores de multiplicación o división consecutivos");
-                    return 0; // O manejar el error de otra manera
-                }
-                divideNext = true;
-            } 
-            else if (currentToken.getType() == TokenType.LEFT_PAREN) 
-            {
-                // Avanzar al siguiente token después del '('
-                int closingParenIndex = findClosingParenthesis(index);
-                if (closingParenIndex != -1) 
-                {
-                    // Calcular el valor dentro de los paréntesis recursivamente
-                    int valueInsideParen = (int) executeOperation(index + 1, TokenType.LEFT_PAREN);
-                    operands.add(valueInsideParen);
-                    index = closingParenIndex + 1; // Avanzar al siguiente token después del ')'
-                } 
-                else 
-                {
-                    System.out.println("Error: Falta el paréntesis de cierre");
-                    return 0; // O manejar el error de otra manera
-                }
-            } 
-            else if (currentToken.getType() == TokenType.RIGHT_PAREN) 
-            {
-                // Fin de la expresión dentro de paréntesis
-                break;
-            } 
-            else if (currentToken.getType() == TokenType.SEMICOLON) 
-            {
-                // Fin de la expresión
-                break;
-            }
-    
-            lastTokenType = currentToken.getType();
-            index++; // Avanzar al siguiente token
-        }
-    
-        // Calcular el resultado final
-        Object result = calculateResult(operands);
-        System.out.println("Debug:" + result);
-        return result;
-    }
-    
-    
-    
-    // Nueva función para encontrar el índice del paréntesis de cierre correspondiente
-    private int findClosingParenthesis(int start) 
-    {
-        int openParenCount = 0;
-        for (int i = start + 1; i < tokens.size(); i++) 
-        {
-            if (tokens.get(i).getType() == TokenType.LEFT_PAREN) 
-            {
-                openParenCount++;
-            } 
-            else if (tokens.get(i).getType() == TokenType.RIGHT_PAREN) 
-            {
-                if (openParenCount == 0) 
-                {
-                    return i;
-                }
-                openParenCount--;
-            }
-        }
-        System.out.println("Error: Falta el paréntesis de cierre correspondiente");
-        return -1;
-    }
-    
-    private int findClosingBrace(int start) 
-    {
-        int openParenCount = 0;
-        for (int i = start; i < tokens.size(); i++) 
-        {
-            if (tokens.get(i).getType() == TokenType.LEFT_BRACE) 
-            {
-                openParenCount++;
-            } 
-            else if (tokens.get(i).getType() == TokenType.RIGHT_BRACE) 
-            {
-                if (openParenCount != 0) 
-                {
-                    return i;
-                }
-                openParenCount--;
-            }
-        }
-        System.out.println("Error: Falta la llave de cierre correspondiente");
-        return -1;
+        return index;
     }
 
-    private Object getOperandValue(Token token) 
-    {
-        int nextTokenIndex ;
-        switch (token.getType()) 
-        {
-            case NUMBER:
-                return Integer.parseInt(token.getLexeme());
-            case IDENTIFIER:
-                String variableName = token.getLexeme();
-                if (variables.containsKey(variableName)) 
-                {
-                    return variables.get(variableName);
-                } 
-                else 
-                {
-                    System.out.println("Error: La variable '" + variableName + "' no esta definida");
-                    return 0; // O manejar el error de otra manera
-                }
-            case LEFT_PAREN:
-                // Avanzar al siguiente token después del '('
-                nextTokenIndex = tokens.indexOf(token) + 1;
-                return executeOperation(nextTokenIndex, TokenType.LEFT_PAREN);
-            case RIGHT_PAREN:
-                // Devolver el resultado de la expresión dentro de paréntesis
-                nextTokenIndex = tokens.indexOf(token) + 1;
-                return executeOperation(nextTokenIndex, TokenType.RIGHT_PAREN);
-            default:
-                System.out.println("Error: Tipo de operando no reconocido");
-                return 0; // O manejar el error de otra manera
-        }
-    }
-
-    private Object calculateResult(List<Object> operands) 
-    {
-        int result = 0;
-        for (Object operand : operands) 
-        {
-            if (operand instanceof Integer) 
-            {
-                result += (int) operand;
-            } 
-            else 
-            {
-                System.out.println("Error: Tipo de operando no admitido");
-                return 0; // O manejar el error de otra manera
-            }
-        }
-        return result;
-    }
-
-    private void executeReturnStatement(int index) 
-    {
+    private int executeReturnStatement(int index) {
         index++; // Avanzar al siguiente token después de "return"
-        if (index < tokens.size()) 
-        {
+        if (index < tokens.size()) {
             Token valueToken = tokens.get(index);
-            switch (valueToken.getType()) 
-            {
+            switch (valueToken.getType()) {
                 case IDENTIFIER:
-                    // Si el token es un identificador, intenta obtener su valor
                     String variableName = valueToken.getLexeme();
-                    if (variables.containsKey(variableName)) 
-                    {
+                    if (variables.containsKey(variableName)) {
                         Object value = variables.get(variableName);
                         results.add(value);
-                    } 
-                    else 
-                    {
+                        return tokens.size(); // Terminar la ejecución
+                    } else {
                         System.out.println("Error: La variable '" + variableName + "' no está definida");
                     }
                     break;
                 case NUMBER:
-                    // Si el token es un número, simplemente agrega su valor a los resultados
                     results.add(Integer.parseInt(valueToken.getLexeme()));
-                    break;
+                    return tokens.size(); // Terminar la ejecución
                 case BOOL_LITERAL:
-                    // Si el token es un número, simplemente agrega su valor a los resultados
                     results.add(Boolean.parseBoolean(valueToken.getLexeme()));
-                    break;
+                    return tokens.size(); // Terminar la ejecución
                 default:
-                    // Otros casos según sea necesario
                     System.out.println("Error: Tipo de valor no reconocido en la declaración de retorno");
                     break;
             }
-        } 
-        else 
-        {
-            // Error: Fin de tokens inesperado después de la declaración de retorno
+        } else {
             System.out.println("Error: Fin de tokens inesperado después de la declaración de retorno");
         }
+        return index;
     }
 
-/*     private boolean isValidReturnContext(int index) {
-        // Comprueba si el índice está dentro de un bloque 'if', 'for', o 'while'
-        boolean isInValidContext = true;
-        int depth = 0; // Profundidad del bloque
-    
-        // Recorre hacia atrás para verificar si está en un contexto válido
-        for (int i = index; i >= 0; i--) {
-            Token token = tokens.get(i);
-            if (token.getType() == TokenType.LEFT_BRACE) {
-                depth++;
-            } else if (token.getType() == TokenType.RIGHT_BRACE) {
-                depth--;
-            }
-    
-            // Si está en un bloque condicional o de bucle, es válido
-            if (depth == 1 && (token.getType() == TokenType.IF || token.getType() == TokenType.FOR || token.getType() == TokenType.WHILE)) {
-                isInValidContext = false;
-                break;
+    private int executeIfStatement(int index) {
+        Token conditionToken = tokens.get(index + 1);
+        boolean condition = Boolean.parseBoolean(conditionToken.getLexeme());
+        if (condition) {
+            
+            index = executeBlock(index + 3); // Asumiendo que la condición está seguida por '{'
+        } else {
+            // Encontrar el 'else' y ejecutar ese bloque, si existe
+            int elseIndex = findElseIndex(index + 3);
+            if (elseIndex != -1) {
+                index = executeBlock(elseIndex + 1); // Asumiendo que 'else' está seguido por '{'
             }
         }
-    
-        return isInValidContext;
-    } */
+        return index;
+    }
 
-    private void executePrint(int index) 
-    {
-        index += 2; // Avanzar al siguiente token después de '('
-
-        if (index < tokens.size()) 
-        {
-            Token variableToken = tokens.get(index);
-            String variableName = variableToken.getLexeme();
-            if (variables.containsKey(variableName)) 
-            {
-                Object value = variables.get(variableName);
-                // Puedes almacenar el valor en una lista de resultados si es necesario
-                results.add(value);
-            } 
-            else 
-            {
-                // Error: La variable no está definida
-                System.out.println("Error: La variable '" + variableName + "' no está definida");
+    private int findElseIndex(int start) {
+        for (int i = start; i < tokens.size(); i++) {
+            Token currentToken = tokens.get(i);
+            if (currentToken.getType() == TokenType.ELSE) {
+                return i;
             }
-        } 
-        else 
-        {
+        }
+        return -1; // 'else' no encontrado
+    }
+
+    private int executeBlock(int index) {
+        int openBraces = 0;
+        for (int i = index; i < tokens.size(); i++) {
+            Token currentToken = tokens.get(i);
+            if (currentToken.getType() == TokenType.LEFT_BRACE) {
+                openBraces++;
+            } else if (currentToken.getType() == TokenType.RIGHT_BRACE) {
+                openBraces--;
+                if (openBraces == 0) {
+                    return i; // Fin del bloque
+                }
+            } else {
+                i = executeStatement(i);
+            }
+        }
+        return tokens.size();
+    }
+    private int executePrint(int index) {
+        index++; // Avanzar al siguiente token después de "print"
+        if (index < tokens.size()) {
+            Token valueToken = tokens.get(index);
+            Object value = null;
+            switch (valueToken.getType()) {
+                case IDENTIFIER:
+                    String variableName = valueToken.getLexeme();
+                    if (variables.containsKey(variableName)) {
+                        value = variables.get(variableName);
+                    } else {
+                        System.out.println("Error: La variable `" + variableName + "` no está definida");
+                    }
+                    break;
+                case NUMBER:
+                    value = Integer.parseInt(valueToken.getLexeme());
+                    break;
+                case BOOL_LITERAL:
+                    value = Boolean.parseBoolean(valueToken.getLexeme());
+                    break;
+                default:
+                    // Otros casos según sea necesario
+                    System.out.println("Error: Tipo de valor no reconocido en la declaración de impresión");
+                    break;
+            }
+            if (value != null) {
+                System.out.println(value);
+            }
+        } else {
             // Error: Fin de tokens inesperado después de la declaración de impresión
             System.out.println("Error: Fin de tokens inesperado después de la declaración de impresión");
         }
-    }
-    private void executeIfStatement(int index) 
-    {
-        index += 2; // Avanzar después de '('
-        String operator = getOperand(index);
-        Token rightOperandToken = tokens.get(index + 2);
-        if(operator.length() >= 2)
-        {
-            rightOperandToken = tokens.get(index + 3);
-        }
-        Token leftOperandToken = tokens.get(index);
-        
-    
-        String leftOperand = leftOperandToken.getLexeme();
-        String rightOperand = rightOperandToken.getLexeme();
-    
-        Object leftValue = variables.get(leftOperand);
-        Object rightValue = variables.get(rightOperand);
-    
-        boolean condition = false;
-        System.out.println("|"+operator+"|");
-        switch (operator)   
-        {
-            case ">":
-                condition = (int) leftValue > (int) rightValue ? true : false;
-                break;
-            case "<":
-                condition = (int) leftValue < (int) rightValue ? true : false;
-                break;
-            case "==":
-                condition = leftValue.equals(rightValue);
-                break;
-            case ">=":
-                condition = (int) leftValue >= (int) rightValue ? true : false;
-                break;
-            case "<=":
-                condition = (int) leftValue <= (int) rightValue ? true : false;
-                break;
-            default:
-                boolean booleanValueLeft = Boolean.parseBoolean(leftOperand);
-                if (booleanValueLeft) condition = true;
-                break;
-        }
-    
-        if (condition) 
-        {
-            executeBlock(index + 3); // Ejecutar el bloque `if`
-        } 
-        else
-        {
-            int nextElse = findClosingBrace(index + 3) + 1;
-            if (tokens.get(nextElse).getType() == TokenType.ELSE) 
-            {
-                executeBlock(nextElse + 1); // Ejecutar el bloque `else`
-            }
-            
-        }
-    }
-    private String getOperand(int index)
-    {
-        int lastIndex = findClosingParenthesis(index);
-        StringBuilder str = new StringBuilder();
-        for(int i = index; i< lastIndex; i++)
-        {
-            TokenType token = tokens.get(i).getType();
-            switch (token) 
-            {
-                case LESS_THAN:
-                    str.append("<");
-                    break;
-                case GREATER_THAN:
-                    str.append(">");
-                    break;
-                case EQUALS:
-                    str.append("=");
-                    break;
-                default:
-                    break;
-            }
-        }
-        
-        return str.toString();
-    }
-
-    private void executeBlock(int start) 
-    {
-        int braceCount = 0; // Hemos encontrado la primera llave de apertura
-        int i = start + 1;
-
-        while (i < tokens.size()) 
-        {
-            Token currentToken = tokens.get(i);
-
-            if (currentToken.getType() == TokenType.LEFT_BRACE) 
-            {
-                braceCount++; // Incrementar cuando se encuentra una llave de apertura
-            } 
-            else if (currentToken.getType() == TokenType.RIGHT_BRACE) 
-            {
-                braceCount--; // Decrementar cuando se encuentra una llave de cierre
-
-                if (braceCount == 0) 
-                {
-                    break; // Terminar el bloque cuando se cierran todas las llaves
-                }
-            }
-            else if(currentToken.getType() == TokenType.RETURN)
-            {
-                executeReturnStatement(i);
-            }
-
-            executeStatement(i); // Ejecutar cada declaración dentro del bloque
-            i++;
-        }
+        return index;
     }
 }

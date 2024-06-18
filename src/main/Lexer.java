@@ -106,12 +106,12 @@ public class Lexer
 
                 }
                 currentPos++;
-                if (currentPos == input.length()) 
-                {
-                    tokens.add(new Token(TokenType.END_OF_FILE, "EOF"));
-                }
             }
-            
+        }
+        
+        // Verificar si se alcanzó el final del archivo y agregar el token correspondiente
+        if (currentPos == input.length()) {
+            tokens.add(new Token(TokenType.END_OF_FILE, "EOF"));
         }
     
         return tokens;
@@ -128,6 +128,7 @@ public class Lexer
         while (currentPos < input.length() && (Character.isLetterOrDigit(input.charAt(currentPos)) || input.charAt(currentPos) == '_')) 
         {
             lexeme.append(input.charAt(currentPos));
+            
             currentPos++;
         }
         String keyword = lexeme.toString();
@@ -152,6 +153,8 @@ public class Lexer
                 return new Token(TokenType.RETURN, lexeme.toString());
             case "print":
                 return new Token(TokenType.PRINT, lexeme.toString());
+            case "ASSEMBLYDEBUG":
+                return new Token(TokenType.ASSEMBLYDEBUG, lexeme.toString());
             default:
                 return new Token(TokenType.IDENTIFIER, lexeme.toString());
         }
