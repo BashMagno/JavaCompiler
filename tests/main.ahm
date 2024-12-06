@@ -1,2 +1,5 @@
 var num1 = 10;
 var num2 = 15;
+if(num1 < num2){
+    return 40;
+}
